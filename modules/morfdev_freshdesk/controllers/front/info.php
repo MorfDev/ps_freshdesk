@@ -6,11 +6,11 @@ class Morfdev_FreshdeskInfoModuleFrontController extends ModuleFrontController
     {
         $postData = file_get_contents('php://input');
         if (false === $postData) {
-            return $this->_error('Invalid POST data');
+            return $this->_error('Invalid POST data', 401);
         }
         $postData = json_decode($postData, true);
         if (null === $postData) {
-            return $this->_error('Invalid JSON in POST');
+            return $this->_error('Invalid JSON in POST', 401);
         }
 
         $token = $postData['token'];
@@ -18,7 +18,7 @@ class Morfdev_FreshdeskInfoModuleFrontController extends ModuleFrontController
         $orderId = $postData['order_id'];
 
         if ($token !== Configuration::get(Morfdev_Freshdesk::CONFIG_API_KEY)) {
-            return $this->_error('Incorrect token');
+            return $this->_error('Incorrect token', 401);
         }
 
         $result = array(
@@ -33,13 +33,17 @@ class Morfdev_FreshdeskInfoModuleFrontController extends ModuleFrontController
             if ($customerEmailFromOrder) {
                 $customerEmail = $customerEmailFromOrder;
             }
+            if (!$customerEmail) {
+                echo json_encode($result);
+                exit;
+            }
             $customerInfo = $this->getCustomerDataByEmail($customerEmail);
             if ($customerInfo) {
                 $result['customer_list'] = array($this->getCustomerDataByEmail($customerEmail));
             }
             $result['order_list'] = $this->getOrderListByCustomerEmail($customerEmail);
         } catch (\Exception $e) {
-            $this->_error($e->getMessage(), $e->getTraceAsString());
+            $this->_error($e->getMessage(), 500, $e->getTraceAsString());
         }
 
         echo json_encode($result);
@@ -55,7 +59,7 @@ class Morfdev_FreshdeskInfoModuleFrontController extends ModuleFrontController
     protected function getCustomerDataByEmail($email)
     {
         $customer = new Customer();
-        $customer->getByEmail($email);
+        $customer->getByEmail($email, null, false);
 
         if (!Validate::isLoadedObject($customer)) {
             return array();
@@ -82,7 +86,7 @@ class Morfdev_FreshdeskInfoModuleFrontController extends ModuleFrontController
     protected function getOrderListByCustomerEmail($customerEmail)
     {
         $customer = new Customer();
-        $customer->getByEmail($customerEmail);
+        $customer->getByEmail($customerEmail, null, false);
 
         if (!Validate::isLoadedObject($customer)) {
             return array();
@@ -337,12 +341,14 @@ class Morfdev_FreshdeskInfoModuleFrontController extends ModuleFrontController
 
     /**
      * @param string $message
+     * @param int $status
      * @param string|null $trace
      */
-    private function _error($message, $trace = null)
+    private function _error($message, $status, $trace = null)
     {
         echo json_encode(array(
             'message' => $message,
+            'status' => $status,
             'trace' => $trace
         ));
         exit;
