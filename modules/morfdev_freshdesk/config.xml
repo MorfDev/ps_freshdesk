@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <module>
     <name>morfdev_freshdesk</name>
-    <displayName><![CDATA[MorfDev Freshdesk Connector]]></displayName>
-    <version><![CDATA[1.0.0]]></version>
-    <description><![CDATA[Description of MorfDev Freshdes Connector]]></description>
+    <displayName><![CDATA[MorfDev Freshworks Connector]]></displayName>
+    <version><![CDATA[1.0.1]]></version>
+    <description><![CDATA[Description of MorfDev Freshworks Connector]]></description>
     <author><![CDATA[MorfDev]]></author>
     <confirmUninstall>Are you sure you want to uninstall?</confirmUninstall>
     <is_configurable>1</is_configurable>
