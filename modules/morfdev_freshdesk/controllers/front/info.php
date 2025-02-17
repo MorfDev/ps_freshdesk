@@ -94,26 +94,94 @@ class Morfdev_FreshdeskInfoModuleFrontController extends ModuleFrontController
         $result = array();
         $orderList = Order::getCustomerOrders($customer->id);
         foreach ($orderList as $order) {
-            $result[] = array(
-                "url" => $this->_getAdminLink('AdminOrders', array('id_order' => $order['id_order'], 'vieworder' => 1)),//TODO: + redirect for token
-                "order_id" => $order['id_order'],
-                "increment_id" => $order['reference'],
-                "created_at" => $this->_formatDatetime($order['date_add']),
-                "status" => $order['order_state'],
-                "color" => array_key_exists('order_state_color', $order)?$order['order_state_color']:$this->_getOrderColor($order['id_order_state']),
-                "billing_address" => Tools::safeOutput($this->_getOrderAddressById(intval($order['id_address_invoice']))),
-                "shipping_address" => Tools::safeOutput($this->_getOrderAddressById(intval($order['id_address_delivery']))),
-                "payment_method" => $this->_getOrderPaymentListByOrderId(intval(($order['id_order']))),
-                "shipping_method" => $this->_getOrderShippingListByOrderId(intval($order['id_order'])),
-                "items" => $this->_getOrderItemsByOrderId($order['id_order']),
-                "totals" => array(
-                    "subtotal" => $this->_formatPrice($order['total_products']),
-                    "shipping" => $this->_formatPrice($order['total_shipping']),
-                    "discount" => $this->_formatPrice($order['total_discounts']),
-                    "tax" => $this->_formatPrice($order['total_paid_tax_incl'] - $order['total_paid_tax_excl']),
-                    "grand_total" => $this->_formatPrice($order['total_paid_tax_incl'])
-                )
-            );
+			$addressBilling = new Address(intval($order['id_address_invoice']));
+			$billing = [
+				'first_name' => '',
+				'last_name' => '',
+				'email' => '',
+				'country' => '',
+				'city' => '',
+				'state' => '',
+				'street' => '',
+				'postcode' => '',
+				'phone' => '',
+			];
+			if (Validate::isLoadedObject($addressBilling)) {
+				$addressFields = AddressFormat::getOrderedAddressFields($addressBilling->id_country);
+				$addressFormatedValues = AddressFormat::getFormattedAddressFieldsValues($addressBilling, $addressFields);
+				$billing = [
+					'first_name' => $addressFormatedValues['firstname'],
+					'last_name' => $addressFormatedValues['lastname'],
+					'email' => $customerEmail,
+					'country' => $addressFormatedValues['Country:name'],
+					'city' => $addressFormatedValues['city'],
+					'state' => $addressFormatedValues['State:name'],
+					'street' => $addressFormatedValues['address1'] . ' ' . $addressFormatedValues['address2'],
+					'postcode' => $addressFormatedValues['postcode'],
+					'phone' => $addressFormatedValues['phone'],
+				];
+			}
+
+			$addressShipping = new Address(intval($order['id_address_invoice']));
+			$shipping = [
+				'first_name' => '',
+				'last_name' => '',
+				'country' => '',
+				'city' => '',
+				'state' => '',
+				'street' => '',
+				'postcode' => '',
+				'phone' => '',
+			];
+			if (Validate::isLoadedObject($addressShipping)) {
+				$addressFields = AddressFormat::getOrderedAddressFields($addressShipping->id_country);
+				$addressFormatedValues = AddressFormat::getFormattedAddressFieldsValues($addressShipping, $addressFields);
+				$shipping = [
+					'first_name' => $addressFormatedValues['firstname'],
+					'last_name' => $addressFormatedValues['lastname'],
+					'country' => $addressFormatedValues['Country:name'],
+					'city' => $addressFormatedValues['city'],
+					'state' => $addressFormatedValues['State:name'],
+					'street' => $addressFormatedValues['address1'] . ' ' . $addressFormatedValues['address2'],
+					'postcode' => $addressFormatedValues['postcode'],
+					'phone' => $addressFormatedValues['phone'],
+				];
+			}
+
+			$status = $order['order_state'];
+			$color = array_key_exists('order_state_color', $order)?$order['order_state_color']:$this->_getOrderColor($order['id_order_state']);
+			//support hidden statuses
+			$context = Context::getContext();
+			$orderStates = OrderState::getOrderStates((int) $context->language->id, false);
+			foreach ($orderStates as $state) {
+				if ($order['current_state'] === $state["id_order_state"]) {
+					$status = $state['name'];
+					$color = $state['color'];
+				}
+			}
+
+			$result[] = array(
+				"url" => $this->_getAdminLink('AdminOrders', array('id_order' => $order['id_order'], 'vieworder' => 1)),//TODO: + redirect for token
+				"order_id" => $order['id_order'],
+				"increment_id" => $order['reference'],
+				"created_at" => $this->_formatDatetime($order['date_add']),
+				"status" => $status,
+				"color" => $color,
+				"billing_address" => Tools::safeOutput($this->_getOrderAddressById(intval($order['id_address_invoice']))),
+				"billing" => $billing,
+				"shipping_address" => Tools::safeOutput($this->_getOrderAddressById(intval($order['id_address_delivery']))),
+				"shipping" => $shipping,
+				"payment_method" => $this->_getOrderPaymentListByOrderId(intval(($order['id_order']))),
+				"shipping_method" => $this->_getOrderShippingListByOrderId(intval($order['id_order'])),
+				"items" => $this->_getOrderItemsByOrderId($order['id_order']),
+				"totals" => array(
+					"subtotal" => $this->_formatPrice($order['total_products']),
+					"shipping" => $this->_formatPrice($order['total_shipping']),
+					"discount" => $this->_formatPrice($order['total_discounts']),
+					"tax" => $this->_formatPrice($order['total_paid_tax_incl'] - $order['total_paid_tax_excl']),
+					"grand_total" => $this->_formatPrice($order['total_paid_tax_incl'])
+				)
+			);
         }
 
         return $result;
@@ -178,6 +246,7 @@ class Morfdev_FreshdeskInfoModuleFrontController extends ModuleFrontController
                 $address['address1'],
                 $address['address2'],
                 $address['city'],
+				$address['state'],
                 $address['country'],
                 $address['postcode'],
                 $address['phone'],
@@ -187,7 +256,19 @@ class Morfdev_FreshdeskInfoModuleFrontController extends ModuleFrontController
             array_map("Tools::safeOutput", $longAddress);
             $result[] = array(
                 'address_in_row' => join(', ', $shortAddress),
-                'address' => join('<br>', $longAddress)
+                'address' => join('<br>', $longAddress),
+				'meta' => [
+					'firstname' => $address['firstname'],
+					'lastname' => $address['lastname'],
+					'company' => $address['company'],
+					'address1' => $address['address1'],
+					'address2' => $address['address2'],
+					'city' => $address['city'],
+					'state' => $address['state'],
+					'country' => $address['country'],
+					'postcode' => $address['postcode'],
+					'phone' => $address['phone'],
+				]
             );
         }
         return $result;
