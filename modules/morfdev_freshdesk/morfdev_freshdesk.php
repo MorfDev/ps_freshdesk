@@ -18,7 +18,7 @@ class Morfdev_Freshdesk extends Module
     {
         $this->name = 'morfdev_freshdesk';
         $this->tab = 'administration';
-        $this->version = '1.0.2';
+        $this->version = '1.0.3';
         $this->author = 'MorfDev';
 
         $this->controllers = array('info');

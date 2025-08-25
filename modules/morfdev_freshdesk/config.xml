@@ -2,7 +2,7 @@
 <module>
     <name>morfdev_freshdesk</name>
     <displayName><![CDATA[MorfDev Freshworks Connector]]></displayName>
-    <version><![CDATA[1.0.2]]></version>
+    <version><![CDATA[1.0.3]]></version>
     <description><![CDATA[Description of MorfDev Freshworks Connector]]></description>
     <author><![CDATA[MorfDev]]></author>
     <confirmUninstall>Are you sure you want to uninstall?</confirmUninstall>

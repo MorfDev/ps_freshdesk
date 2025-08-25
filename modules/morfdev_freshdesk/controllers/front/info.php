@@ -484,7 +484,7 @@ class Morfdev_FreshdeskInfoModuleFrontController extends ModuleFrontController
      */
     private function _formatPrice($amount, $currency = null)
     {
-        return Tools::displayPrice($amount, $currency);
+        return $this->context->getCurrentLocale()->formatPrice($amount, $this->context->currency->iso_code);
     }
 
     /**
